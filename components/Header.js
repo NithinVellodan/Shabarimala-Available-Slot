@@ -2,11 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Flame, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
-// ADMIN imports commented out: Bell, ShieldCheck, Radio
+import { Bell, Flame, ExternalLink, RefreshCw, ShieldCheck, AlertTriangle, Radio } from 'lucide-react';
 
-export default function Header({ apiHealth, onRefresh, isRefreshing }) {
-  // dataMode and onToggleMode removed from pilgrim-facing view
+export default function Header({ apiHealth, onRefresh, isRefreshing, dataMode, onToggleMode }) {
   const pathname = usePathname();
 
   const getStatusBadge = () => {
@@ -51,11 +49,10 @@ export default function Header({ apiHealth, onRefresh, isRefreshing }) {
   };
 
   const navItems = [
-    { name: 'Slot Availability', href: '/dashboard' },
+    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Activity History', href: '/history' },
+    { name: 'Settings & Alerts', href: '/settings' },
     { name: 'Terms & Disclaimer', href: '/terms' },
-    // Admin nav items — commented out for public view:
-    // { name: 'Activity History', href: '/history' },
-    // { name: 'Settings & Alerts', href: '/settings' },
   ];
 
   return (
@@ -106,40 +103,52 @@ export default function Header({ apiHealth, onRefresh, isRefreshing }) {
 
           {/* Right Action Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-
-            {/* Live status pill — subtle, no admin detail */}
+            {/* Status badge */}
             <div className="hidden lg:flex items-center">
               {getStatusBadge()}
             </div>
 
-            {/* Refresh — icon only on mobile */}
+            {/* Mode Toggle Button */}
+            {onToggleMode && (
+              <button
+                type="button"
+                onClick={onToggleMode}
+                title="Toggle between Live Official API and Simulation Mock Mode"
+                className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  dataMode === 'LIVE'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                    : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>{dataMode === 'LIVE' ? 'Mode: Live API' : 'Mode: Mock Sim'}</span>
+              </button>
+            )}
+
+            {/* Manual Refresh Button */}
             {onRefresh && (
               <button
                 type="button"
                 onClick={onRefresh}
                 disabled={isRefreshing}
-                title="Refresh availability"
+                title="Refresh availability now"
                 className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center gap-1.5 disabled:opacity-50 transition-colors"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-saffron-600' : ''}`} />
-                <span className="hidden sm:inline">{isRefreshing ? 'Checking…' : 'Refresh'}</span>
+                <span className="hidden sm:inline">{isRefreshing ? 'Checking...' : 'Refresh'}</span>
               </button>
             )}
 
-            {/* Official Booking CTA */}
+            {/* Official Sabarimala Portal CTA */}
             <a
               href="https://sabarimalaonline.org/#/darshan"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold bg-saffron-600 hover:bg-saffron-700 text-white shadow-sm hover:shadow transition-all"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold bg-navy-900 hover:bg-navy-800 text-white shadow-sm hover:shadow transition-all group"
             >
-              <span>Book Darshan</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Book on Portal</span>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-white transition-colors" />
             </a>
-
-            {/* ADMIN controls commented out:
-            <button onClick={onToggleMode}>Mode: Live/Mock</button>
-            */}
           </div>
 
         </div>

@@ -2,22 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
-import DevotionalBanner from '@/components/DevotionalBanner';
-import AvailableSlotsCard from '@/components/AvailableSlotsCard';
-import AvailabilityCalendar from '@/components/AvailabilityCalendar';
+import StatisticsCards from '@/components/StatisticsCards';
 import RecipientAlertCard from '@/components/RecipientAlertCard';
+import AvailabilityCalendar from '@/components/AvailabilityCalendar';
+import MonitoredDates from '@/components/MonitoredDates';
+import MonitoringControls from '@/components/MonitoringControls';
+import ActivityTimeline from '@/components/ActivityTimeline';
+import ApiStatus from '@/components/ApiStatus';
+import LiveApiPayloadCard from '@/components/LiveApiPayloadCard';
+import DevotionalBanner from '@/components/DevotionalBanner';
 import TermsAndConditions from '@/components/TermsAndConditions';
 import { formatISTTime } from '@/lib/dateUtils';
-import { Sparkles, ExternalLink, X } from 'lucide-react';
-
-// ── ADMIN/TECHNICAL COMPONENTS (commented out for pilgrim-facing view) ──────
-// import StatisticsCards from '@/components/StatisticsCards';
-// import MonitoringControls from '@/components/MonitoringControls';
-// import LiveApiPayloadCard from '@/components/LiveApiPayloadCard';
-// import ApiStatus from '@/components/ApiStatus';
-// import ActivityTimeline from '@/components/ActivityTimeline';
-// import MonitoredDates from '@/components/MonitoredDates';
-// ─────────────────────────────────────────────────────────────────────────────
+import { Sparkles, ExternalLink, AlertCircle, X } from 'lucide-react';
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -25,25 +21,22 @@ export default function DashboardPage() {
   const [apiData, setApiData] = useState(null);
   const [apiHealth, setApiHealth] = useState(null);
   const [settings, setSettings] = useState(null);
-  const [lastChecked, setLastChecked] = useState(null);
+  const [monitoredDates, setMonitoredDates] = useState([]);
+  const [history, setHistory] = useState([]);
   const [newlyAvailableDates, setNewlyAvailableDates] = useState([]);
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [lastChecked, setLastChecked] = useState(null);
+  const [latency, setLatency] = useState(null);
+  const [dataMode, setDataMode] = useState('LIVE');
   const [alertBanner, setAlertBanner] = useState(null);
 
-  // ── ADMIN STATE (kept but unused in public view) ─────────────────────────
-  // const [monitoredDates, setMonitoredDates] = useState([]);
-  // const [history, setHistory] = useState([]);
-  // const [selectedDates, setSelectedDates] = useState([]);
-  // const [latency, setLatency] = useState(null);
-  // const [dataMode, setDataMode] = useState('LIVE');
-  // ─────────────────────────────────────────────────────────────────────────
-
+  // Fetch full state from backend
   const fetchData = useCallback(async (isManual = false) => {
     if (isManual) setIsRefreshing(true);
     try {
       const cacheBuster = Date.now();
-
-      // 1. Fetch live availability
-      const availRes = await fetch(`/api/availability?refresh=${isManual}&mode=LIVE&_t=${cacheBuster}`, {
+      // 1. Fetch Availability with no-store and unique timestamp
+      const availRes = await fetch(`/api/availability?refresh=${isManual}&mode=${dataMode}&_t=${cacheBuster}`, {
         cache: 'no-store'
       });
       const availJson = await availRes.json();
@@ -52,17 +45,29 @@ export default function DashboardPage() {
         setApiData(availJson.data);
         setApiHealth(availJson.health);
         setLastChecked(availJson.checkedAt);
+        if (availJson.latency) {
+          setLatency(availJson.latency);
+        } else if (availJson.data?.latency) {
+          setLatency(availJson.data.latency);
+        }
       } else {
         setApiHealth(availJson.health || { status: 'NETWORK_ERROR', message: availJson.error });
       }
 
-      // 2. Fetch settings (for notification recipient)
-      const monRes = await fetch(`/api/monitoring?_t=${cacheBuster}`, { cache: 'no-store' });
+      // 2. Fetch Monitoring State with no-store
+      const monRes = await fetch(`/api/monitoring?_t=${cacheBuster}`, {
+        cache: 'no-store'
+      });
       const monJson = await monRes.json();
       if (monJson.settings) setSettings(monJson.settings);
+      if (monJson.monitoredDates) setMonitoredDates(monJson.monitoredDates);
+      if (monJson.history) setHistory(monJson.history);
+      if (monJson.settings?.data_mode && monJson.settings.data_mode !== dataMode) {
+        setDataMode(monJson.settings.data_mode);
+      }
 
-      // 3. Notify if newly available dates detected
-      if (availJson.data?.newlyAvailableDates?.length > 0) {
+      // Check if newly available dates exist
+      if (availJson.data?.newlyAvailableDates && availJson.data.newlyAvailableDates.length > 0) {
         setNewlyAvailableDates(availJson.data.newlyAvailableDates);
         setAlertBanner({
           title: '🚨 New Darshan Slots Available!',
@@ -70,40 +75,198 @@ export default function DashboardPage() {
           timestamp: formatISTTime(new Date())
         });
       }
-
-      // ── ADMIN fetches (commented out for public view) ─────────────────
-      // if (monJson.monitoredDates) setMonitoredDates(monJson.monitoredDates);
-      // if (monJson.history) setHistory(monJson.history);
-      // if (availJson.latency) setLatency(availJson.latency);
-      // ───────────────────────────────────────────────────────────────────
-
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
     } finally {
       setLoading(false);
       if (isManual) setIsRefreshing(false);
     }
-  }, []);
+  }, [dataMode]);
 
   // Initial load
-  useEffect(() => { fetchData(false); }, [fetchData]);
-
-  // Auto-refresh every 60 seconds
   useEffect(() => {
-    const interval = setInterval(() => fetchData(false), 60000);
+    fetchData(false);
+  }, [fetchData]);
+
+  // Periodic polling in browser dashboard (every 60s)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchData(false);
+    }, 60000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Save notification recipient
+  // Toggle Live vs Mock Mode
+  const handleToggleMode = async () => {
+    const newMode = dataMode === 'LIVE' ? 'MOCK' : 'LIVE';
+    setDataMode(newMode);
+    try {
+      await fetch('/api/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_settings',
+          settings: { data_mode: newMode }
+        })
+      });
+      fetchData(true);
+    } catch (e) {
+      console.error('Failed to toggle mode:', e);
+    }
+  };
+
+  // Date selection in Calendar
+  const handleSelectDate = (dateStr) => {
+    setSelectedDates(prev =>
+      prev.includes(dateStr) ? prev.filter(d => d !== dateStr) : [...prev, dateStr]
+    );
+  };
+
+  // Add selected dates to monitored list
+  const handleAddSelectedToMonitoring = async () => {
+    if (selectedDates.length === 0) return;
+    try {
+      const res = await fetch('/api/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_dates',
+          dates: selectedDates
+        })
+      });
+      const json = await res.json();
+      if (json.monitoredDates) {
+        setMonitoredDates(json.monitoredDates);
+        setSelectedDates([]);
+      }
+    } catch (e) {
+      console.error('Failed to add selected dates:', e);
+    }
+  };
+
+  // Monitor entire season
+  const handleMonitorAllDates = async () => {
+    try {
+      await fetch('/api/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_settings',
+          settings: { monitoring_mode: 'ALL' }
+        })
+      });
+      fetchData(true);
+    } catch (e) {
+      console.error('Failed to monitor all dates:', e);
+    }
+  };
+
+  // Add single custom date
+  const handleAddSingleDate = async (dateStr) => {
+    try {
+      const res = await fetch('/api/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_dates',
+          dates: [dateStr]
+        })
+      });
+      const json = await res.json();
+      if (json.monitoredDates) {
+        setMonitoredDates(json.monitoredDates);
+      }
+    } catch (e) {
+      console.error('Failed to add date:', e);
+    }
+  };
+
+  // Toggle monitoring on specific date
+  const handleToggleDate = async (dateStr, enabled) => {
+    try {
+      const res = await fetch('/api/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle_date',
+          date: dateStr,
+          enabled
+        })
+      });
+      const json = await res.json();
+      if (json.monitoredDates) {
+        setMonitoredDates(json.monitoredDates);
+      }
+    } catch (e) {
+      console.error('Failed to toggle date:', e);
+    }
+  };
+
+  // Remove date from monitoring
+  const handleRemoveDate = async (dateStr) => {
+    try {
+      const res = await fetch('/api/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'remove_date',
+          date: dateStr
+        })
+      });
+      const json = await res.json();
+      if (json.monitoredDates) {
+        setMonitoredDates(json.monitoredDates);
+      }
+    } catch (e) {
+      console.error('Failed to remove date:', e);
+    }
+  };
+
+  // Start / Pause monitoring
+  const handleStartMonitoring = async () => {
+    await fetch('/api/monitoring', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'start' })
+    });
+    fetchData(false);
+  };
+
+  const handlePauseMonitoring = async () => {
+    await fetch('/api/monitoring', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'pause' })
+    });
+    fetchData(false);
+  };
+
+  const handleUpdateSettings = async (newSettings) => {
+    await fetch('/api/monitoring', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_settings', settings: newSettings })
+    });
+    fetchData(false);
+  };
+
+  // Save recipient name & email directly from Dashboard Screen
   const handleSaveAlertRecipient = async (name, email, sendTest) => {
     try {
       const res = await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'save_alert_recipient', name, email, sendTest })
+        body: JSON.stringify({
+          action: 'save_alert_recipient',
+          name,
+          email,
+          sendTest
+        })
       });
       const json = await res.json();
-      if (json.settings) setSettings(json.settings);
+      if (json.settings) {
+        setSettings(json.settings);
+      }
       fetchData(false);
       return json;
     } catch (err) {
@@ -111,19 +274,57 @@ export default function DashboardPage() {
     }
   };
 
-  // ── ADMIN HANDLERS (kept for future admin panel use) ──────────────────────
-  // const handleToggleMode = async () => { ... }
-  // const handleSelectDate = (dateStr) => { ... }
-  // const handleAddSelectedToMonitoring = async () => { ... }
-  // const handleMonitorAllDates = async () => { ... }
-  // const handleAddSingleDate = async (dateStr) => { ... }
-  // const handleToggleDate = async (dateStr, enabled) => { ... }
-  // const handleRemoveDate = async (dateStr) => { ... }
-  // const handleStartMonitoring = async () => { ... }
-  // const handlePauseMonitoring = async () => { ... }
-  // const handleUpdateSettings = async (newSettings) => { ... }
-  // const handleSimulateSlotRelease = async (simDate, makeAvailable) => { ... }
-  // ─────────────────────────────────────────────────────────────────────────
+  // Simulate slot release (for demonstration & testing)
+  const handleSimulateSlotRelease = async (simDate, makeAvailable) => {
+    try {
+      // 1. Switch to MOCK mode if not already
+      if (dataMode !== 'MOCK') {
+        setDataMode('MOCK');
+        await fetch('/api/monitoring', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_settings',
+            settings: { data_mode: 'MOCK' }
+          })
+        });
+      }
+
+      // 2. Trigger mock simulation
+      await fetch('/api/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'simulate',
+          date: simDate,
+          makeAvailable
+        })
+      });
+
+      // 3. Trigger immediate monitoring cycle to detect change & send Telegram alert
+      const refreshRes = await fetch('/api/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'refresh' })
+      });
+      const refreshJson = await refreshRes.json();
+
+      if (makeAvailable) {
+        setAlertBanner({
+          title: `🚨 Slot Simulation: ${simDate} Released!`,
+          dates: [simDate],
+          timestamp: formatISTTime(new Date()),
+          details: 'Monitoring check detected status transition from BOOKED to AVAILABLE and dispatched Telegram notification logic.'
+        });
+      } else {
+        setAlertBanner(null);
+      }
+
+      fetchData(false);
+    } catch (e) {
+      console.error('Simulation failed:', e);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -131,118 +332,186 @@ export default function DashboardPage() {
         apiHealth={apiHealth}
         onRefresh={() => fetchData(true)}
         isRefreshing={isRefreshing}
-        // dataMode and onToggleMode hidden from pilgrim view
+        dataMode={dataMode}
+        onToggleMode={handleToggleMode}
       />
 
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-
-        {/* ── NEW SLOT ALERT BANNER ─────────────────────────────────────── */}
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 space-y-6">
+        
+        {/* Alert Banner for newly available slots */}
         {alertBanner && (
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500 to-saffron-600 text-white shadow-lg flex items-start justify-between gap-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500 to-saffron-600 text-white shadow-lg flex items-start justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="flex items-start gap-3">
-              <div className="p-2 bg-white/20 rounded-xl shrink-0">
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm shrink-0">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-base font-black">{alertBanner.title}</h3>
+                <h3 className="text-base font-black tracking-tight">
+                  {alertBanner.title}
+                </h3>
                 <p className="text-xs text-white/90 mt-0.5">
-                  Available: <b>{alertBanner.dates.join(', ')}</b> • Detected at {alertBanner.timestamp}
+                  Available Dates: <b>{alertBanner.dates.join(', ')}</b> • Detected at {alertBanner.timestamp}
                 </p>
+                {alertBanner.details && (
+                  <p className="text-[11px] text-white/80 mt-1 font-mono">
+                    {alertBanner.details}
+                  </p>
+                )}
               </div>
             </div>
+
             <div className="flex items-center gap-2 shrink-0">
               <a
                 href="https://sabarimalaonline.org/#/darshan"
-                target="_blank" rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-white text-navy-900 text-xs font-bold flex items-center gap-1.5 hover:bg-slate-100 transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-lg bg-white text-navy-900 text-xs font-bold shadow-sm hover:bg-slate-100 flex items-center gap-1.5 transition-colors"
               >
-                Book Now <ExternalLink className="w-3.5 h-3.5" />
+                <span>Book on Official Portal</span>
+                <ExternalLink className="w-3.5 h-3.5" />
               </a>
-              <button type="button" onClick={() => setAlertBanner(null)}
-                className="p-1 rounded-lg hover:bg-white/20 text-white">
+              <button
+                type="button"
+                onClick={() => setAlertBanner(null)}
+                className="p-1 rounded-lg hover:bg-white/20 text-white"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* ── 1. DEVOTIONAL BANNER ─────────────────────────────────────── */}
+        {/* 0. Devotional Banner */}
         <DevotionalBanner />
 
-        {/* ── 2. AVAILABLE SLOTS HERO ──────────────────────────────────── */}
-        <AvailableSlotsCard
-          apiData={apiData}
+        {/* 1. Statistics Cards */}
+        <StatisticsCards
+          monitoredDatesCount={monitoredDates.length}
+          availableDatesCount={apiData?.availableDatesList?.length || 0}
+          bookedDatesCount={apiData?.bookedDates?.length || 0}
+          blockedDatesCount={apiData?.blockedDates?.length || 0}
+          newlyReleasedCount={newlyAvailableDates.length}
           lastChecked={lastChecked}
+          apiHealth={apiHealth}
+        />
+
+        {/* 2. Recipient Alert Setup Directly on Screen */}
+        <RecipientAlertCard
+          settings={settings}
+          onSaveRecipient={handleSaveAlertRecipient}
+          onRefresh={() => fetchData(true)}
+        />
+
+        {/* 3. Monitoring Engine Controls */}
+        <MonitoringControls
+          settings={settings}
+          isRefreshing={isRefreshing}
+          onStart={handleStartMonitoring}
+          onPause={handlePauseMonitoring}
+          onRefresh={() => fetchData(true)}
+          onUpdateSettings={handleUpdateSettings}
+          onSimulateSlotRelease={handleSimulateSlotRelease}
+        />
+
+        {/* 4. Live Official API Payload Card (Real-Time from Sabarimala) */}
+        <LiveApiPayloadCard
+          apiData={apiData}
+          apiHealth={apiHealth}
+          lastChecked={lastChecked}
+          latency={latency}
           isRefreshing={isRefreshing}
           onRefresh={() => fetchData(true)}
         />
 
-        {/* ── 3. AVAILABILITY CALENDAR ─────────────────────────────────── */}
+        {/* 5. Availability Calendar */}
         <AvailabilityCalendar
           apiData={apiData}
-          monitoredDates={[]}
+          monitoredDates={monitoredDates}
           newlyAvailableDates={newlyAvailableDates}
-          selectedDates={[]}
+          selectedDates={selectedDates}
+          onSelectDate={handleSelectDate}
+          onBatchSelect={setSelectedDates}
+          onAddSelectedToMonitoring={handleAddSelectedToMonitoring}
+          onMonitorAllDates={handleMonitorAllDates}
           lastChecked={lastChecked}
-          // Admin callbacks removed from pilgrim view:
-          // onSelectDate={handleSelectDate}
-          // onBatchSelect={setSelectedDates}
-          // onAddSelectedToMonitoring={handleAddSelectedToMonitoring}
-          // onMonitorAllDates={handleMonitorAllDates}
         />
 
-        {/* ── 4. NOTIFICATION ALERT SETUP ──────────────────────────────── */}
-        <div id="alert-setup">
-          <RecipientAlertCard
-            settings={settings}
-            onSaveRecipient={handleSaveAlertRecipient}
-            onRefresh={() => fetchData(true)}
-          />
-        </div>
+        {/* 4. Monitored Dates Management */}
+        <MonitoredDates
+          monitoredDates={monitoredDates}
+          apiData={apiData}
+          newlyAvailableDates={newlyAvailableDates}
+          lastChecked={lastChecked}
+          onToggleDate={handleToggleDate}
+          onRemoveDate={handleRemoveDate}
+          onAddDate={handleAddSingleDate}
+        />
 
-        {/* ── 5. TERMS & CONDITIONS ────────────────────────────────────── */}
+        {/* 5. Gateway Health & Technical Diagnostics */}
+        <ApiStatus
+          apiHealth={apiHealth}
+          apiData={apiData}
+          lastChecked={lastChecked}
+          latency={latency}
+        />
+
+        {/* 6. Activity Timeline */}
+        <ActivityTimeline
+          history={history}
+          onRefresh={() => fetchData(true)}
+          isRefreshing={isRefreshing}
+        />
+
+        {/* 7. Terms & Conditions */}
         <TermsAndConditions />
-
-        {/* ── ADMIN SECTIONS (commented out, kept for admin panel) ─────────
-        <StatisticsCards ... />
-        <MonitoringControls ... />
-        <LiveApiPayloadCard ... />
-        <MonitoredDates ... />
-        <ApiStatus ... />
-        <ActivityTimeline ... />
-        ─────────────────────────────────────────────────────────────────── */}
 
       </main>
 
-      {/* ── FOOTER ───────────────────────────────────────────────────────── */}
-      <footer className="mt-auto border-t border-saffron-200 bg-gradient-to-r from-navy-900 to-navy-800 py-6">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-3">
+      {/* Footer */}
+      <footer className="mt-auto border-t border-saffron-200 bg-gradient-to-r from-navy-900 via-navy-900 to-navy-800 py-6 text-center text-xs text-slate-400">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 space-y-4">
 
-          <p className="text-saffron-400 font-bold tracking-widest text-[11px] uppercase text-center">
-            🙏 &nbsp; Swamiye Saranam Ayyappa &nbsp; • &nbsp; ॐ &nbsp; • &nbsp; ശബരിമലക്ക് ജയ് &nbsp; 🙏
+          {/* Devotional line */}
+          <p className="text-saffron-400 font-bold tracking-widest text-[11px] uppercase">
+            🙏 &nbsp; ॐ شبريمالا • Swamiye Saranam Ayyappa • ശബരിമലക്ക് ജയ് &nbsp; 🙏
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <div className="text-white font-black">Sabarimala Slot Alert</div>
-            <div>
-              <span className="text-slate-400">Official booking: </span>
-              <a href="https://sabarimalaonline.org/#/darshan" target="_blank" rel="noopener noreferrer"
-                className="text-saffron-400 font-bold hover:text-saffron-300 hover:underline">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-white">
+              <span className="font-black text-sm">Sabarimala Slot Alert</span>
+              <span className="text-slate-500">•</span>
+              <span className="text-slate-400 text-xs">Virtual Q Availability Monitor</span>
+            </div>
+
+            <div className="text-center">
+              <span className="text-slate-400">Official Booking Gateway: </span>
+              <a
+                href="https://sabarimalaonline.org/#/darshan"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-saffron-400 font-bold hover:text-saffron-300 hover:underline transition-colors"
+              >
                 sabarimalaonline.org
               </a>
             </div>
-            <div className="text-slate-500 text-[11px] text-center sm:text-right">
-              Informational only • No payment • No booking
+
+            <div className="text-slate-500 text-[11px] text-right">
+              <span className="block">Not affiliated with TDB or Kerala Government.</span>
+              <span className="block">Informational only • No payment • No booking.</span>
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-600 text-center border-t border-navy-800 pt-3">
-            Not affiliated with TDB or Kerala Government. Use of this service is subject to our{' '}
-            <button onClick={() => document.getElementById('terms-section')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-saffron-500 hover:text-saffron-300 underline cursor-pointer">
-              Terms of Use
-            </button>.
-          </p>
+          <div className="border-t border-navy-800 pt-3 text-[11px] text-slate-600">
+            This is a free, independent devotional-service tool. All Darshan bookings must be completed on the official Sabarimala portal.
+            Use of this service is subject to our{' '}
+            <button
+              onClick={() => document.getElementById('terms-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-saffron-500 hover:text-saffron-300 underline cursor-pointer transition-colors"
+            >
+              Terms of Use & Disclaimer
+            </button>
+            .
+          </div>
         </div>
       </footer>
     </div>
