@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
 import StatisticsCards from '@/components/StatisticsCards';
+import RecipientAlertCard from '@/components/RecipientAlertCard';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import MonitoredDates from '@/components/MonitoredDates';
 import MonitoringControls from '@/components/MonitoringControls';
@@ -234,6 +235,30 @@ export default function DashboardPage() {
     fetchData(false);
   };
 
+  // Save recipient name & email directly from Dashboard Screen
+  const handleSaveAlertRecipient = async (name, email, sendTest) => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_alert_recipient',
+          name,
+          email,
+          sendTest
+        })
+      });
+      const json = await res.json();
+      if (json.settings) {
+        setSettings(json.settings);
+      }
+      fetchData(false);
+      return json;
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
   // Simulate slot release (for demonstration & testing)
   const handleSimulateSlotRelease = async (simDate, makeAvailable) => {
     try {
@@ -352,7 +377,14 @@ export default function DashboardPage() {
           apiHealth={apiHealth}
         />
 
-        {/* 2. Monitoring Engine Controls */}
+        {/* 2. Recipient Alert Setup Directly on Screen */}
+        <RecipientAlertCard
+          settings={settings}
+          onSaveRecipient={handleSaveAlertRecipient}
+          onRefresh={() => fetchData(true)}
+        />
+
+        {/* 3. Monitoring Engine Controls */}
         <MonitoringControls
           settings={settings}
           isRefreshing={isRefreshing}

@@ -17,6 +17,7 @@ export async function GET() {
     const isGmailUserSet = Boolean(process.env.GMAIL_USER);
     const isGmailAppPassSet = Boolean(process.env.GMAIL_APP_PASSWORD);
     const recipientEmail = settings?.alert_recipient_email || process.env.ALERT_RECIPIENT_EMAIL || (isGmailUserSet ? process.env.GMAIL_USER : '');
+    const recipientName = settings?.recipient_name || 'Devotee';
 
     return NextResponse.json({
       configured: (isBotTokenSet && isChatIdSet) || (isGmailUserSet && isGmailAppPassSet),
@@ -32,8 +33,10 @@ export async function GET() {
         isGmailAppPassSet,
         gmailUser: process.env.GMAIL_USER ? process.env.GMAIL_USER.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '',
         recipientEmail,
+        recipientName,
         enabled: settings?.email_notification_enabled ?? true
       },
+      settings,
       logs
     });
   } catch (err) {
@@ -76,7 +79,33 @@ export async function POST(request) {
       return NextResponse.json({ success: true, settings: updated });
     }
 
-    // Save Recipient Email
+    // Save Recipient Name & Email directly from Screen
+    if (action === 'save_alert_recipient') {
+      const { name, email: recipientEmailInput, sendTest = true } = body;
+      if (!recipientEmailInput) {
+        return NextResponse.json({ error: 'Recipient email is required' }, { status: 400 });
+      }
+
+      const updated = await db.updateSettings({
+        recipient_name: (name || '').trim(),
+        alert_recipient_email: recipientEmailInput.trim(),
+        email_notification_enabled: true
+      });
+
+      let testResult = null;
+      if (sendTest) {
+        testResult = await sendTestEmail(null, null, recipientEmailInput.trim());
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Alert recipient updated to ${name ? name + ' (' + recipientEmailInput + ')' : recipientEmailInput}`,
+        settings: updated,
+        testResult
+      });
+    }
+
+    // Save Recipient Email (legacy)
     if (action === 'save_recipient_email') {
       if (!recipient) {
         return NextResponse.json({ error: 'Recipient email is required' }, { status: 400 });
