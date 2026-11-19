@@ -31,26 +31,37 @@ export default function DashboardPage() {
   const fetchData = useCallback(async (isManual = false) => {
     if (isManual) setIsRefreshing(true);
     try {
-      // 1. Fetch Availability
-      const availRes = await fetch(`/api/availability?refresh=${isManual}&mode=${dataMode}`);
+      const cacheBuster = Date.now();
+      // 1. Fetch Availability with no-store and unique timestamp
+      const availRes = await fetch(`/api/availability?refresh=${isManual}&mode=${dataMode}&_t=${cacheBuster}`, {
+        cache: 'no-store'
+      });
       const availJson = await availRes.json();
 
-      if (availJson.success) {
+      if (availJson.success && availJson.data) {
         setApiData(availJson.data);
         setApiHealth(availJson.health);
         setLastChecked(availJson.checkedAt);
-        if (availJson.data?.latency) setLatency(availJson.data.latency);
+        if (availJson.latency) {
+          setLatency(availJson.latency);
+        } else if (availJson.data?.latency) {
+          setLatency(availJson.data.latency);
+        }
       } else {
         setApiHealth(availJson.health || { status: 'NETWORK_ERROR', message: availJson.error });
       }
 
-      // 2. Fetch Monitoring State
-      const monRes = await fetch('/api/monitoring');
+      // 2. Fetch Monitoring State with no-store
+      const monRes = await fetch(`/api/monitoring?_t=${cacheBuster}`, {
+        cache: 'no-store'
+      });
       const monJson = await monRes.json();
       if (monJson.settings) setSettings(monJson.settings);
       if (monJson.monitoredDates) setMonitoredDates(monJson.monitoredDates);
       if (monJson.history) setHistory(monJson.history);
-      if (monJson.settings?.data_mode) setDataMode(monJson.settings.data_mode);
+      if (monJson.settings?.data_mode && monJson.settings.data_mode !== dataMode) {
+        setDataMode(monJson.settings.data_mode);
+      }
 
       // Check if newly available dates exist
       if (availJson.data?.newlyAvailableDates && availJson.data.newlyAvailableDates.length > 0) {

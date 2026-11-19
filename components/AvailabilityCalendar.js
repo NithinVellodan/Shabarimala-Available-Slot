@@ -99,7 +99,7 @@ export default function AvailabilityCalendar({
   };
 
   const getDayStatusStyle = (status, isMonitored, isSelected) => {
-    let base = 'relative transition-all rounded-lg p-1.5 sm:p-2.5 flex flex-col items-center justify-between min-h-[58px] sm:min-h-[72px] border text-xs sm:text-sm font-semibold select-none cursor-pointer ';
+    let base = 'relative transition-all rounded-lg p-1 sm:p-2 flex flex-col items-center justify-between min-h-[48px] sm:min-h-[68px] border text-xs sm:text-sm font-semibold select-none cursor-pointer ';
 
     if (isSelected) {
       base += ' ring-2 ring-saffron-500 shadow-md ';
@@ -138,8 +138,34 @@ export default function AvailabilityCalendar({
   const hoveredStatus = hoveredDate ? getDateStatus(hoveredDate, apiData, newlyAvailableDates) : null;
   const isHoveredMonitored = hoveredDate ? monitoredSet.has(hoveredDate) : false;
 
+  const janAvailableCount = (apiData?.availableDatesList || []).filter(d => d.startsWith('2027-01')).length;
+  const decAvailableCount = (apiData?.availableDatesList || []).filter(d => d.startsWith('2026-12')).length;
+  const isViewingDecWithJanOpen = currentYear === 2026 && currentMonth === 11 && janAvailableCount > 0 && decAvailableCount === 0;
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      {/* Notice banner if slots are open in Jan 2027 while viewing Dec 2026 */}
+      {isViewingDecWithJanOpen && (
+        <div className="px-4 py-2.5 bg-emerald-50 border-b border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>
+              <b>Live Open Slots Detected:</b> {janAvailableCount} date(s) are currently available in <b>January 2027</b> ({apiData.availableDatesList.filter(d => d.startsWith('2027-01')).join(', ')}).
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={jumpToJan2027}
+            className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs shrink-0 transition-colors"
+          >
+            Switch to Jan 2027 ➔
+          </button>
+        </div>
+      )}
+
       {/* Calendar Header with Navigation */}
       <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
@@ -183,24 +209,34 @@ export default function AvailabilityCalendar({
             <button
               type="button"
               onClick={jumpToDec2026}
-              className={`px-2.5 py-1 rounded font-medium transition-colors ${
+              className={`px-2.5 py-1 rounded font-medium transition-colors flex items-center gap-1.5 ${
                 currentYear === 2026 && currentMonth === 11
                   ? 'bg-navy-900 text-white font-bold'
                   : 'text-slate-600 hover:text-navy-900'
               }`}
             >
-              Dec 2026
+              <span>Dec 2026</span>
+              {decAvailableCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-emerald-500 text-white">
+                  {decAvailableCount}
+                </span>
+              )}
             </button>
             <button
               type="button"
               onClick={jumpToJan2027}
-              className={`px-2.5 py-1 rounded font-medium transition-colors ${
+              className={`px-2.5 py-1 rounded font-medium transition-colors flex items-center gap-1.5 ${
                 currentYear === 2027 && currentMonth === 0
                   ? 'bg-navy-900 text-white font-bold'
                   : 'text-slate-600 hover:text-navy-900'
               }`}
             >
-              Jan 2027
+              <span>Jan 2027</span>
+              {janAvailableCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-emerald-500 text-white animate-pulse">
+                  {janAvailableCount} open
+                </span>
+              )}
             </button>
           </div>
 
