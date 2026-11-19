@@ -13,6 +13,7 @@ import {
   Copy,
   Check
 } from 'lucide-react';
+import { formatISTTime } from '@/lib/dateUtils';
 
 export default function TelegramSettings({
   notificationConfig = {},
@@ -305,7 +306,7 @@ https://sabarimalaonline.org/#/darshan`}
                       </span>
                     </td>
                     <td className="py-2 px-3 text-slate-400 font-mono text-[11px]">
-                      {new Date(log.sent_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {formatISTTime(log.sent_at)}
                     </td>
                   </tr>
                 ))}

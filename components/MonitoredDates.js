@@ -13,7 +13,7 @@ import {
   Sparkles,
   ExternalLink
 } from 'lucide-react';
-import { formatDisplayDate, getDateStatus, timeAgo } from '@/lib/dateUtils';
+import { formatDisplayDate, getDateStatus, timeAgo, formatISTTime } from '@/lib/dateUtils';
 
 export default function MonitoredDates({
   monitoredDates = [],
@@ -188,7 +188,7 @@ export default function MonitoredDates({
                     <td className="py-3.5 px-4 text-slate-500">
                       <div className="flex items-center gap-1.5 text-xs">
                         <Clock className="w-3 h-3 text-slate-400" />
-                        <span>{lastChecked ? timeAgo(lastChecked) : 'Pending'}</span>
+                        <span>{lastChecked ? (timeAgo(lastChecked) === 'Just now' ? formatISTTime(lastChecked, false) : timeAgo(lastChecked)) : 'Pending'}</span>
                       </div>
                     </td>
 

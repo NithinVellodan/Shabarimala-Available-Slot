@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, CheckCircle2, XCircle, Ban, Sparkles, Clock } from 'lucide-react';
-import { formatTimestamp, timeAgo } from '@/lib/dateUtils';
+import { formatTimestamp, timeAgo, formatISTTime } from '@/lib/dateUtils';
 
 export default function StatisticsCards({
   monitoredDatesCount = 0,
@@ -61,8 +61,10 @@ export default function StatisticsCards({
     },
     {
       label: 'Last API Check',
-      value: lastChecked ? timeAgo(lastChecked) : 'Pending',
-      sublabel: lastChecked ? formatTimestamp(lastChecked) : 'Waiting for initial sync',
+      value: formatISTTime(lastChecked || new Date(), false),
+      sublabel: lastChecked
+        ? (timeAgo(lastChecked) === 'Just now' ? 'Just updated • IST' : `${timeAgo(lastChecked)} (${formatTimestamp(lastChecked)})`)
+        : 'Live sync active (IST)',
       icon: Clock,
       color: apiHealth?.status === 'CONNECTED' ? 'text-teal-600' : 'text-slate-600',
       bgColor: apiHealth?.status === 'CONNECTED' ? 'bg-teal-50' : 'bg-slate-50',

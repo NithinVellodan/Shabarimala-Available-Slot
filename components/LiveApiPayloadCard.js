@@ -16,7 +16,7 @@ import {
   MapPin,
   Sparkles
 } from 'lucide-react';
-import { formatDisplayDate, timeAgo } from '@/lib/dateUtils';
+import { formatDisplayDate, timeAgo, formatISTTime } from '@/lib/dateUtils';
 
 export default function LiveApiPayloadCard({
   apiData = null,
@@ -106,7 +106,7 @@ export default function LiveApiPayloadCard({
             </h3>
           </div>
           <span className="text-[11px] text-slate-500 font-medium">
-            Checked: {lastChecked ? timeAgo(lastChecked) : 'Just now'} • Latency: {latency ? `${latency}ms` : '140ms'}
+            Checked: {formatISTTime(lastChecked || new Date())} {lastChecked && timeAgo(lastChecked) !== 'Just now' ? `(${timeAgo(lastChecked)})` : ''} • Latency: {latency ? `${latency}ms` : '140ms'}
           </span>
         </div>
 
