@@ -203,7 +203,7 @@ export default function AvailabilityCalendar({
           </div>
         </div>
 
-        {/* Quick Month Jump Buttons & Selection Actions */}
+        {/* Month Jump Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg p-1 text-xs">
             <button
@@ -240,44 +240,10 @@ export default function AvailabilityCalendar({
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSelectEntireMonth}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-          >
-            Select Month
-          </button>
-
-          {selectedDates.length > 0 && (
-            <>
-              <button
-                type="button"
-                onClick={() => onBatchSelect([])}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
-              >
-                Clear ({selectedDates.length})
-              </button>
-
-              <button
-                type="button"
-                onClick={onAddSelectedToMonitoring}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-saffron-600 hover:bg-saffron-700 text-white shadow-xs transition-all"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Monitor Selected ({selectedDates.length})</span>
-              </button>
-            </>
-          )}
-
-          {onMonitorAllDates && (
-            <button
-              type="button"
-              onClick={onMonitorAllDates}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              Monitor Entire Season
-            </button>
-          )}
+          {/* ADMIN CONTROLS — commented out for pilgrim-facing view */}
+          {/* <button type="button" onClick={handleSelectEntireMonth} ...>Select Month</button> */}
+          {/* selectedDates monitor/clear buttons removed from public view */}
+          {/* <button type="button" onClick={onMonitorAllDates} ...>Monitor Entire Season</button> */}
         </div>
       </div>
 
@@ -392,13 +358,14 @@ export default function AvailabilityCalendar({
         ) : (
           <div className="flex items-center gap-2 text-slate-500">
             <Info className="w-4 h-4 text-slate-400" />
-            <span>Hover over any date to inspect slot details. Click to select or multi-select dates.</span>
+            <span>Hover over any date to see its slot status.</span>
           </div>
         )}
 
-        <div className="text-slate-500 text-[11px]">
+        {/* ADMIN: date selection count — hidden for public view */}
+        {/* <div className="text-slate-500 text-[11px]">
           {selectedDates.length > 0 ? `${selectedDates.length} date(s) selected` : 'Click dates to select'}
-        </div>
+        </div> */}
       </div>
     </div>
   );

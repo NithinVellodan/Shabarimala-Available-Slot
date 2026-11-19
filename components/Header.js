@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Flame, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
+// ADMIN imports commented out: Bell, ShieldCheck, Radio
 
 export default function Header({ apiHealth, onRefresh, isRefreshing }) {
-  // dataMode, onToggleMode — admin only, not shown to pilgrims
+  // dataMode and onToggleMode removed from pilgrim-facing view
   const pathname = usePathname();
 
   const getStatusBadge = () => {
@@ -51,10 +52,11 @@ export default function Header({ apiHealth, onRefresh, isRefreshing }) {
 
   const navItems = [
     { name: 'Slot Availability', href: '/dashboard' },
-    { name: 'Email Alerts', href: '/dashboard#alerts' },
     { name: 'Terms & Disclaimer', href: '/terms' },
+    // Admin nav items — commented out for public view:
+    // { name: 'Activity History', href: '/history' },
+    // { name: 'Settings & Alerts', href: '/settings' },
   ];
-  // Removed: 'Activity History', 'Settings & Alerts' — admin-only pages
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
@@ -105,33 +107,39 @@ export default function Header({ apiHealth, onRefresh, isRefreshing }) {
           {/* Right Action Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
 
-            {/* Refresh availability */}
+            {/* Live status pill — subtle, no admin detail */}
+            <div className="hidden lg:flex items-center">
+              {getStatusBadge()}
+            </div>
+
+            {/* Refresh — icon only on mobile */}
             {onRefresh && (
               <button
                 type="button"
                 onClick={onRefresh}
                 disabled={isRefreshing}
-                title="Check latest slot availability"
+                title="Refresh availability"
                 className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center gap-1.5 disabled:opacity-50 transition-colors"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-saffron-600' : ''}`} />
-                <span className="hidden sm:inline">{isRefreshing ? 'Checking...' : 'Refresh'}</span>
+                <span className="hidden sm:inline">{isRefreshing ? 'Checking…' : 'Refresh'}</span>
               </button>
             )}
 
-            {/* Official Portal CTA */}
+            {/* Official Booking CTA */}
             <a
               href="https://sabarimalaonline.org/#/darshan"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold bg-saffron-600 hover:bg-saffron-700 text-white shadow-sm transition-all group"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold bg-saffron-600 hover:bg-saffron-700 text-white shadow-sm hover:shadow transition-all"
             >
-              <span>Book on Portal</span>
-              <ExternalLink className="w-3.5 h-3.5 text-white/80" />
+              <span>Book Darshan</span>
+              <ExternalLink className="w-3.5 h-3.5" />
             </a>
 
-            {/* Admin: Status badge, Mode toggle — hidden from pilgrims */}
-            {/* {getStatusBadge()} */}
+            {/* ADMIN controls commented out:
+            <button onClick={onToggleMode}>Mode: Live/Mock</button>
+            */}
           </div>
 
         </div>
@@ -143,7 +151,7 @@ export default function Header({ apiHealth, onRefresh, isRefreshing }) {
               key={item.href}
               href={item.href}
               className={`px-3 py-1.5 rounded-md font-semibold ${
-                pathname === item.href || (item.href.includes('/dashboard') && pathname === '/dashboard')
+                pathname === item.href
                   ? 'bg-saffron-50 text-saffron-700 font-bold'
                   : 'text-slate-600'
               }`}
