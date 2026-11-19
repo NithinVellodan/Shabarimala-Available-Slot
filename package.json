@@ -8,7 +8,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "worker": "node workers/availabilityWorker.js"
+    "worker": "node workers/availabilityWorker.js",
+    "verify": "node scripts/verify-api.js",
+    "test-alert": "node scripts/test-live-alert.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.46.1",

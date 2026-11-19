@@ -12,6 +12,8 @@ export async function GET(request) {
     const forceMode = searchParams.get('mode');
     const triggerRefresh = searchParams.get('refresh') === 'true';
 
+    console.log(`[API /api/availability] GET request received | mode: ${forceMode || 'DEFAULT'} | refresh: ${triggerRefresh}`);
+
     let result;
     if (triggerRefresh) {
       result = await runMonitoringCheck({ force: true, modeOverride: forceMode });
@@ -24,6 +26,9 @@ export async function GET(request) {
     const health = await getApiHealth();
     const settings = await db.getSettings();
 
+    const availableList = result.data?.availableDatesList || result.summary?.newlyAvailableDates || [];
+    console.log(`[API /api/availability] Result: status=${result.status} | success=${result.success !== false} | availableSlots=${availableList.length}`);
+
     return NextResponse.json({
       success: result.success !== false,
       status: result.status,
@@ -33,6 +38,7 @@ export async function GET(request) {
       checkedAt: result.checkedAt || new Date().toISOString()
     });
   } catch (err) {
+    console.error('[API /api/availability] Error processing request:', err);
     return NextResponse.json(
       {
         success: false,

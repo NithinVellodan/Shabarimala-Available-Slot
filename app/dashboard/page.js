@@ -9,6 +9,7 @@ import MonitoredDates from '@/components/MonitoredDates';
 import MonitoringControls from '@/components/MonitoringControls';
 import ActivityTimeline from '@/components/ActivityTimeline';
 import ApiStatus from '@/components/ApiStatus';
+import LiveApiPayloadCard from '@/components/LiveApiPayloadCard';
 import { Sparkles, ExternalLink, AlertCircle, X } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -395,7 +396,17 @@ export default function DashboardPage() {
           onSimulateSlotRelease={handleSimulateSlotRelease}
         />
 
-        {/* 3. Availability Calendar */}
+        {/* 4. Live Official API Payload Card (Real-Time from Sabarimala) */}
+        <LiveApiPayloadCard
+          apiData={apiData}
+          apiHealth={apiHealth}
+          lastChecked={lastChecked}
+          latency={latency}
+          isRefreshing={isRefreshing}
+          onRefresh={() => fetchData(true)}
+        />
+
+        {/* 5. Availability Calendar */}
         <AvailabilityCalendar
           apiData={apiData}
           monitoredDates={monitoredDates}
