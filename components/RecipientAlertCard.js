@@ -133,7 +133,7 @@ export default function RecipientAlertCard({
   };
 
   return (
-    <div className="bg-gradient-to-r from-saffron-50/80 via-white to-orange-50/60 rounded-2xl border border-saffron-200/80 shadow-xs overflow-hidden">
+    <div id="alerts" className="bg-gradient-to-r from-saffron-50/80 via-white to-orange-50/60 rounded-2xl border border-saffron-200/80 shadow-xs overflow-hidden">
       {/* Summary View on Screen */}
       <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3">

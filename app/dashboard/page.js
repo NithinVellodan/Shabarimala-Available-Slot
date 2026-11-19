@@ -2,18 +2,22 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
-import StatisticsCards from '@/components/StatisticsCards';
 import RecipientAlertCard from '@/components/RecipientAlertCard';
-import AvailabilityCalendar from '@/components/AvailabilityCalendar';
-import MonitoredDates from '@/components/MonitoredDates';
-import MonitoringControls from '@/components/MonitoringControls';
-import ActivityTimeline from '@/components/ActivityTimeline';
-import ApiStatus from '@/components/ApiStatus';
-import LiveApiPayloadCard from '@/components/LiveApiPayloadCard';
+// --- Admin/technical imports (commented out — not shown to pilgrims) ---
+// import ActivityTimeline from '@/components/ActivityTimeline';
+// import ApiStatus from '@/components/ApiStatus';
+// import LiveApiPayloadCard from '@/components/LiveApiPayloadCard';
+// import StatisticsCards from '@/components/StatisticsCards';
+// import MonitoringControls from '@/components/MonitoringControls';
+// import MonitoredDates from '@/components/MonitoredDates';
+// import AvailabilityCalendar from '@/components/AvailabilityCalendar';
+
+// --- User-facing imports ---
 import DevotionalBanner from '@/components/DevotionalBanner';
+import SlotsOverview from '@/components/SlotsOverview';
 import TermsAndConditions from '@/components/TermsAndConditions';
 import { formatISTTime } from '@/lib/dateUtils';
-import { Sparkles, ExternalLink, AlertCircle, X } from 'lucide-react';
+import { Sparkles, ExternalLink, X } from 'lucide-react';
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -332,138 +336,129 @@ export default function DashboardPage() {
         apiHealth={apiHealth}
         onRefresh={() => fetchData(true)}
         isRefreshing={isRefreshing}
-        dataMode={dataMode}
-        onToggleMode={handleToggleMode}
       />
 
-      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 space-y-6">
-        
-        {/* Alert Banner for newly available slots */}
+      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        {/* ── 1. Devotional Banner ──────────────────────── */}
+        <DevotionalBanner />
+
+        {/* ── 2. Alert Banner (shown only when new slots detected) ── */}
         {alertBanner && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500 to-saffron-600 text-white shadow-lg flex items-start justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500 to-saffron-600 text-white shadow-lg flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm shrink-0">
+              <div className="p-2 bg-white/20 rounded-xl shrink-0">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-base font-black tracking-tight">
-                  {alertBanner.title}
-                </h3>
+                <h3 className="text-base font-black">{alertBanner.title}</h3>
                 <p className="text-xs text-white/90 mt-0.5">
-                  Available Dates: <b>{alertBanner.dates.join(', ')}</b> • Detected at {alertBanner.timestamp}
+                  Dates: <b>{alertBanner.dates.join(', ')}</b> • {alertBanner.timestamp}
                 </p>
-                {alertBanner.details && (
-                  <p className="text-[11px] text-white/80 mt-1 font-mono">
-                    {alertBanner.details}
-                  </p>
-                )}
               </div>
             </div>
-
             <div className="flex items-center gap-2 shrink-0">
               <a
                 href="https://sabarimalaonline.org/#/darshan"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-white text-navy-900 text-xs font-bold shadow-sm hover:bg-slate-100 flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-white text-navy-900 text-xs font-bold flex items-center gap-1.5"
               >
-                <span>Book on Official Portal</span>
-                <ExternalLink className="w-3.5 h-3.5" />
+                Book Now <ExternalLink className="w-3.5 h-3.5" />
               </a>
-              <button
-                type="button"
-                onClick={() => setAlertBanner(null)}
-                className="p-1 rounded-lg hover:bg-white/20 text-white"
-              >
+              <button onClick={() => setAlertBanner(null)} className="p-1 rounded-lg hover:bg-white/20">
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* 0. Devotional Banner */}
-        <DevotionalBanner />
-
-        {/* 1. Statistics Cards */}
-        <StatisticsCards
-          monitoredDatesCount={monitoredDates.length}
-          availableDatesCount={apiData?.availableDatesList?.length || 0}
-          bookedDatesCount={apiData?.bookedDates?.length || 0}
-          blockedDatesCount={apiData?.blockedDates?.length || 0}
-          newlyReleasedCount={newlyAvailableDates.length}
+        {/* ── 3. Slot Availability (main user section) ─── */}
+        <SlotsOverview
+          apiData={apiData}
           lastChecked={lastChecked}
-          apiHealth={apiHealth}
+          isRefreshing={isRefreshing}
+          onRefresh={() => fetchData(true)}
         />
 
-        {/* 2. Recipient Alert Setup Directly on Screen */}
+        {/* ── 4. Email Notification Setup ──────────────── */}
         <RecipientAlertCard
           settings={settings}
           onSaveRecipient={handleSaveAlertRecipient}
           onRefresh={() => fetchData(true)}
         />
 
-        {/* 3. Monitoring Engine Controls */}
-        <MonitoringControls
-          settings={settings}
-          isRefreshing={isRefreshing}
-          onStart={handleStartMonitoring}
-          onPause={handlePauseMonitoring}
-          onRefresh={() => fetchData(true)}
-          onUpdateSettings={handleUpdateSettings}
-          onSimulateSlotRelease={handleSimulateSlotRelease}
-        />
-
-        {/* 4. Live Official API Payload Card (Real-Time from Sabarimala) */}
-        <LiveApiPayloadCard
-          apiData={apiData}
-          apiHealth={apiHealth}
-          lastChecked={lastChecked}
-          latency={latency}
-          isRefreshing={isRefreshing}
-          onRefresh={() => fetchData(true)}
-        />
-
-        {/* 5. Availability Calendar */}
-        <AvailabilityCalendar
-          apiData={apiData}
-          monitoredDates={monitoredDates}
-          newlyAvailableDates={newlyAvailableDates}
-          selectedDates={selectedDates}
-          onSelectDate={handleSelectDate}
-          onBatchSelect={setSelectedDates}
-          onAddSelectedToMonitoring={handleAddSelectedToMonitoring}
-          onMonitorAllDates={handleMonitorAllDates}
-          lastChecked={lastChecked}
-        />
-
-        {/* 4. Monitored Dates Management */}
-        <MonitoredDates
-          monitoredDates={monitoredDates}
-          apiData={apiData}
-          newlyAvailableDates={newlyAvailableDates}
-          lastChecked={lastChecked}
-          onToggleDate={handleToggleDate}
-          onRemoveDate={handleRemoveDate}
-          onAddDate={handleAddSingleDate}
-        />
-
-        {/* 5. Gateway Health & Technical Diagnostics */}
-        <ApiStatus
-          apiHealth={apiHealth}
-          apiData={apiData}
-          lastChecked={lastChecked}
-          latency={latency}
-        />
-
-        {/* 6. Activity Timeline */}
-        <ActivityTimeline
-          history={history}
-          onRefresh={() => fetchData(true)}
-          isRefreshing={isRefreshing}
-        />
-
-        {/* 7. Terms & Conditions */}
+        {/* ── 5. Terms & Conditions ────────────────────── */}
         <TermsAndConditions />
+
+        {/*
+          ── ADMIN / TECHNICAL SECTIONS (hidden from pilgrims) ──
+          Uncomment below to restore for admin use.
+
+          <StatisticsCards
+            monitoredDatesCount={monitoredDates.length}
+            availableDatesCount={apiData?.availableDatesList?.length || 0}
+            bookedDatesCount={apiData?.bookedDates?.length || 0}
+            blockedDatesCount={apiData?.blockedDates?.length || 0}
+            newlyReleasedCount={newlyAvailableDates.length}
+            lastChecked={lastChecked}
+            apiHealth={apiHealth}
+          />
+
+          <MonitoringControls
+            settings={settings}
+            isRefreshing={isRefreshing}
+            onStart={handleStartMonitoring}
+            onPause={handlePauseMonitoring}
+            onRefresh={() => fetchData(true)}
+            onUpdateSettings={handleUpdateSettings}
+            onSimulateSlotRelease={handleSimulateSlotRelease}
+          />
+
+          <LiveApiPayloadCard
+            apiData={apiData}
+            apiHealth={apiHealth}
+            lastChecked={lastChecked}
+            latency={latency}
+            isRefreshing={isRefreshing}
+            onRefresh={() => fetchData(true)}
+          />
+
+          <AvailabilityCalendar
+            apiData={apiData}
+            monitoredDates={monitoredDates}
+            newlyAvailableDates={newlyAvailableDates}
+            selectedDates={selectedDates}
+            onSelectDate={handleSelectDate}
+            onBatchSelect={setSelectedDates}
+            onAddSelectedToMonitoring={handleAddSelectedToMonitoring}
+            onMonitorAllDates={handleMonitorAllDates}
+            lastChecked={lastChecked}
+          />
+
+          <MonitoredDates
+            monitoredDates={monitoredDates}
+            apiData={apiData}
+            newlyAvailableDates={newlyAvailableDates}
+            lastChecked={lastChecked}
+            onToggleDate={handleToggleDate}
+            onRemoveDate={handleRemoveDate}
+            onAddDate={handleAddSingleDate}
+          />
+
+          <ApiStatus
+            apiHealth={apiHealth}
+            apiData={apiData}
+            lastChecked={lastChecked}
+            latency={latency}
+          />
+
+          <ActivityTimeline
+            history={history}
+            onRefresh={() => fetchData(true)}
+            isRefreshing={isRefreshing}
+          />
+        */}
 
       </main>
 
