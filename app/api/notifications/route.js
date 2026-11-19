@@ -1,7 +1,8 @@
 // API Route: /api/notifications
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/supabase';
-import { sendTestNotification } from '@/lib/telegramService';
+import { db } from '@/lib/supabase.js';
+import { sendTestNotification } from '@/lib/telegramService.js';
+import { sendTestEmail } from '@/lib/emailService.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,12 +14,25 @@ export async function GET() {
     const isBotTokenSet = Boolean(process.env.TELEGRAM_BOT_TOKEN);
     const isChatIdSet = Boolean(process.env.TELEGRAM_CHAT_ID);
 
+    const isGmailUserSet = Boolean(process.env.GMAIL_USER);
+    const isGmailAppPassSet = Boolean(process.env.GMAIL_APP_PASSWORD);
+    const recipientEmail = settings?.alert_recipient_email || process.env.ALERT_RECIPIENT_EMAIL || (isGmailUserSet ? process.env.GMAIL_USER : '');
+
     return NextResponse.json({
-      configured: isBotTokenSet && isChatIdSet,
-      details: {
+      configured: (isBotTokenSet && isChatIdSet) || (isGmailUserSet && isGmailAppPassSet),
+      telegram: {
+        configured: isBotTokenSet && isChatIdSet,
         isBotTokenSet,
         isChatIdSet,
-        notificationEnabled: settings?.notification_enabled ?? true
+        enabled: settings?.notification_enabled ?? true
+      },
+      email: {
+        configured: isGmailUserSet && isGmailAppPassSet,
+        isGmailUserSet,
+        isGmailAppPassSet,
+        gmailUser: process.env.GMAIL_USER ? process.env.GMAIL_USER.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '',
+        recipientEmail,
+        enabled: settings?.email_notification_enabled ?? true
       },
       logs
     });
@@ -30,8 +44,9 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { action, token, chatId, enabled } = body;
+    const { action, token, chatId, enabled, user, pass, recipient } = body;
 
+    // Telegram Test
     if (action === 'test') {
       const result = await sendTestNotification(token, chatId);
       if (!result.success) {
@@ -40,8 +55,33 @@ export async function POST(request) {
       return NextResponse.json({ success: true, message: 'Test message sent successfully to Telegram!' });
     }
 
-    if (action === 'toggle') {
+    // Email Test
+    if (action === 'test_email') {
+      const result = await sendTestEmail(user, pass, recipient);
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, message: result.message });
+    }
+
+    // Toggle Telegram
+    if (action === 'toggle' || action === 'toggle_telegram') {
       const updated = await db.updateSettings({ notification_enabled: enabled !== false });
+      return NextResponse.json({ success: true, settings: updated });
+    }
+
+    // Toggle Email
+    if (action === 'toggle_email') {
+      const updated = await db.updateSettings({ email_notification_enabled: enabled !== false });
+      return NextResponse.json({ success: true, settings: updated });
+    }
+
+    // Save Recipient Email
+    if (action === 'save_recipient_email') {
+      if (!recipient) {
+        return NextResponse.json({ error: 'Recipient email is required' }, { status: 400 });
+      }
+      const updated = await db.updateSettings({ alert_recipient_email: recipient.trim() });
       return NextResponse.json({ success: true, settings: updated });
     }
 

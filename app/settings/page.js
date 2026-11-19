@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import TelegramSettings from '@/components/TelegramSettings';
+import EmailSettings from '@/components/EmailSettings';
 import {
   Settings,
   Database,
@@ -13,7 +14,10 @@ import {
   Check,
   Code2,
   ExternalLink,
-  Shield
+  Shield,
+  Bell,
+  Mail,
+  Send
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -23,28 +27,31 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState(null);
   const [apiHealth, setApiHealth] = useState(null);
   const [copiedSql, setCopiedSql] = useState(false);
+  const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'TELEGRAM' | 'EMAIL'
+
+  const loadSettings = async () => {
+    try {
+      const notifRes = await fetch('/api/notifications');
+      const notifJson = await notifRes.json();
+      setNotificationConfig(notifJson);
+      setLogs(notifJson.logs || []);
+
+      const monRes = await fetch('/api/monitoring');
+      const monJson = await monRes.json();
+      setSettings(monJson.settings);
+      setApiHealth(monJson.health);
+    } catch (e) {
+      console.error('Failed to load settings:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadSettings() {
-      try {
-        const notifRes = await fetch('/api/notifications');
-        const notifJson = await notifRes.json();
-        setNotificationConfig(notifJson);
-        setLogs(notifJson.logs || []);
-
-        const monRes = await fetch('/api/monitoring');
-        const monJson = await monRes.json();
-        setSettings(monJson.settings);
-        setApiHealth(monJson.health);
-      } catch (e) {
-        console.error('Failed to load settings:', e);
-      } finally {
-        setLoading(false);
-      }
-    }
     loadSettings();
   }, []);
 
+  // Telegram Handlers
   const handleSendTestNotification = async (token, chatId) => {
     const res = await fetch('/api/notifications', {
       method: 'POST',
@@ -63,10 +70,43 @@ export default function SettingsPage() {
     const json = await res.json();
     if (json.settings) {
       setSettings(json.settings);
-      setNotificationConfig(prev => ({
-        ...prev,
-        details: { ...prev?.details, notificationEnabled: enabled }
-      }));
+      loadSettings();
+    }
+  };
+
+  // Email Handlers
+  const handleSendTestEmail = async (user, pass, recipient) => {
+    const res = await fetch('/api/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'test_email', user, pass, recipient })
+    });
+    return await res.json();
+  };
+
+  const handleToggleEmail = async (enabled) => {
+    const res = await fetch('/api/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle_email', enabled })
+    });
+    const json = await res.json();
+    if (json.settings) {
+      setSettings(json.settings);
+      loadSettings();
+    }
+  };
+
+  const handleSaveRecipientEmail = async (recipient) => {
+    const res = await fetch('/api/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save_recipient_email', recipient })
+    });
+    const json = await res.json();
+    if (json.settings) {
+      setSettings(json.settings);
+      loadSettings();
     }
   };
 
@@ -124,6 +164,8 @@ CREATE TABLE IF NOT EXISTS monitoring_settings (
     monitoring_enabled BOOLEAN NOT NULL DEFAULT true,
     monitoring_interval INTEGER NOT NULL DEFAULT 300,
     notification_enabled BOOLEAN NOT NULL DEFAULT true,
+    email_notification_enabled BOOLEAN NOT NULL DEFAULT true,
+    alert_recipient_email TEXT,
     monitoring_mode TEXT NOT NULL DEFAULT 'SELECTED',
     data_mode TEXT NOT NULL DEFAULT 'LIVE',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -142,31 +184,67 @@ CREATE TABLE IF NOT EXISTS monitoring_settings (
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
         {/* Title */}
-        <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-saffron-50 text-saffron-700">
               <Settings className="w-6 h-6" />
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl font-black tracking-tight text-navy-900">
-                System Settings & Alerts
+                Alert Channels & Settings
               </h2>
               <p className="text-xs text-slate-500">
-                Configure your Telegram notifications, monitoring worker cadence, Supabase persistence, and cloud hosting.
+                Configure your free Telegram and Gmail alerts, monitoring worker cadence, Supabase persistence, and cloud hosting.
               </p>
             </div>
+          </div>
+
+          {/* Quick channel tabs */}
+          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold">
+            <button
+              onClick={() => setActiveTab('ALL')}
+              className={`px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'ALL' ? 'bg-navy-900 text-white' : 'text-slate-600 hover:text-navy-900'}`}
+            >
+              All Alerts
+            </button>
+            <button
+              onClick={() => setActiveTab('TELEGRAM')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'TELEGRAM' ? 'bg-sky-600 text-white' : 'text-slate-600 hover:text-navy-900'}`}
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Telegram</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('EMAIL')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'EMAIL' ? 'bg-saffron-600 text-white' : 'text-slate-600 hover:text-navy-900'}`}
+            >
+              <Mail className="w-3.5 h-3.5" />
+              <span>Gmail (Free)</span>
+            </button>
           </div>
         </div>
 
         {/* 1. Telegram Notifications */}
-        <TelegramSettings
-          notificationConfig={notificationConfig}
-          logs={logs}
-          onSendTestNotification={handleSendTestNotification}
-          onToggleNotification={handleToggleNotification}
-        />
+        {(activeTab === 'ALL' || activeTab === 'TELEGRAM') && (
+          <TelegramSettings
+            notificationConfig={notificationConfig?.telegram || notificationConfig}
+            logs={logs.filter(l => l.notification_type === 'TELEGRAM')}
+            onSendTestNotification={handleSendTestNotification}
+            onToggleNotification={handleToggleNotification}
+          />
+        )}
 
-        {/* 2. Monitoring Engine Settings */}
+        {/* 2. Free Gmail Email Notifications */}
+        {(activeTab === 'ALL' || activeTab === 'EMAIL') && (
+          <EmailSettings
+            emailConfig={notificationConfig?.email}
+            onSendTestEmail={handleSendTestEmail}
+            onToggleEmail={handleToggleEmail}
+            onSaveRecipientEmail={handleSaveRecipientEmail}
+          />
+        )}
+
+        {/* 3. Monitoring Engine Settings */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Server className="w-5 h-5 text-saffron-600" />
@@ -235,7 +313,7 @@ CREATE TABLE IF NOT EXISTS monitoring_settings (
           </div>
         </div>
 
-        {/* 3. Supabase Database & Persistence */}
+        {/* 4. Supabase Database & Persistence */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -277,7 +355,7 @@ CREATE TABLE IF NOT EXISTS monitoring_settings (
           </details>
         </div>
 
-        {/* 4. Railway / Render Worker Deployment Guide */}
+        {/* 5. Railway / Render Worker Deployment Guide */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-3">
             <Cloud className="w-5 h-5 text-indigo-600" />
@@ -295,7 +373,7 @@ CREATE TABLE IF NOT EXISTS monitoring_settings (
               <ol className="list-decimal list-inside space-y-1.5 text-slate-600">
                 <li>Deploy this repo to Railway as a <b>Service</b>.</li>
                 <li>Set <b>Start Command</b> to: <code className="font-mono bg-white px-1 py-0.5 rounded text-navy-900">npm run worker</code></li>
-                <li>Add environment variables: <code className="font-mono bg-white px-1 py-0.5 rounded text-navy-900">TELEGRAM_BOT_TOKEN</code>, <code className="font-mono bg-white px-1 py-0.5 rounded text-navy-900">TELEGRAM_CHAT_ID</code></li>
+                <li>Add environment variables: <code className="font-mono bg-white px-1 py-0.5 rounded text-navy-900">TELEGRAM_BOT_TOKEN</code>, <code className="font-mono bg-white px-1 py-0.5 rounded text-navy-900">TELEGRAM_CHAT_ID</code>, <code className="font-mono bg-white px-1 py-0.5 rounded text-navy-900">GMAIL_USER</code>, <code className="font-mono bg-white px-1 py-0.5 rounded text-navy-900">GMAIL_APP_PASSWORD</code></li>
               </ol>
             </div>
 
@@ -305,7 +383,7 @@ CREATE TABLE IF NOT EXISTS monitoring_settings (
                 <li>Create a <b>Background Worker</b> on Render.</li>
                 <li>Set <b>Build Command</b>: <code className="font-mono bg-white px-1 py-0.5 rounded text-navy-900">npm install</code></li>
                 <li>Set <b>Start Command</b>: <code className="font-mono bg-white px-1 py-0.5 rounded text-navy-900">npm run worker</code></li>
-                <li>Attach your Telegram and Supabase environment variables.</li>
+                <li>Attach your Telegram, Gmail, and Supabase environment variables.</li>
               </ol>
             </div>
           </div>

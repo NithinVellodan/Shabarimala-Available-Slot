@@ -136,6 +136,23 @@ The worker will periodically fetch live availability, detect newly opened slots,
 
 ---
 
+## 📧 Free Gmail SMTP Email Setup Guide (100% Free)
+
+You can receive real-time email alerts using any standard Google account (500 free emails/day):
+1. Go to your Google Account: [myaccount.google.com/security](https://myaccount.google.com/security).
+2. Ensure **2-Step Verification** is enabled.
+3. Search for **"App passwords"** (or find it under 2-Step Verification).
+4. Create an app named **"Sabarimala Slot Alert"**.
+5. Copy the generated 16-character password into `.env`:
+   ```env
+   GMAIL_USER=yourname@gmail.com
+   GMAIL_APP_PASSWORD=abcd efgh ijkl mnop
+   ALERT_RECIPIENT_EMAIL=yourname@gmail.com
+   ```
+6. In **Settings** on the dashboard, click **Send Test Email** to verify delivery.
+
+---
+
 ## 🗄️ Supabase Database Setup
 
 When you are ready to connect to Supabase:
