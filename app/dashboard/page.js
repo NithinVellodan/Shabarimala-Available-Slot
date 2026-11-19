@@ -333,7 +333,7 @@ export default function DashboardPage() {
         onToggleMode={handleToggleMode}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 space-y-6">
         
         {/* Alert Banner for newly available slots */}
         {alertBanner && (
@@ -460,7 +460,7 @@ export default function DashboardPage() {
 
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="font-bold text-navy-900">Sabarimala Slot Alert</span>
             <span>•</span>

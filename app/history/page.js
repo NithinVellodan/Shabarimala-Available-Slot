@@ -37,7 +37,7 @@ export default function HistoryPage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header apiHealth={apiHealth} />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 space-y-6">
         
         <div>
           <div className="flex items-center gap-2.5">

@@ -1,13 +1,13 @@
 {
-  "auditTimestamp": "2026-11-19T07:06:45.257Z",
+  "auditTimestamp": "2026-11-19T07:24:01.686Z",
   "targetEndpoint": "https://sabarimalaonline.org/api/eDarshan/darshansummary/100001",
   "httpStatus": 200,
-  "latencyMs": 156,
+  "latencyMs": 154,
   "headers": {
     "server": null,
     "xCache": "Miss from cloudfront",
     "cfPop": "MAA50-P1",
-    "cfId": "knT_SUA1DZRQEtlja0TOmD9JCMYrbSPzcq0SHeQ6ZyOrF4a4QkQ4HA==",
+    "cfId": "_VXR3eaEtTxY0nqboihVlXYTzi5CRYqlaTA-UroK9BcljwF2DWSpsg==",
     "contentType": "application/json;charset=UTF-8"
   },
   "seasonRange": [
@@ -15,11 +15,15 @@
     "2027-03-09"
   ],
   "counts": {
-    "available": 2,
-    "booked": 44,
+    "available": 3,
+    "booked": 43,
     "blocked": 0
   },
   "availableDatesList": [
+    {
+      "date": "2027-01-06",
+      "formatted": "Wednesday, Jan 6, 2027"
+    },
     {
       "date": "2027-01-08",
       "formatted": "Friday, Jan 8, 2027"
@@ -31,6 +35,7 @@
   ],
   "rawSummary": {
     "availableDatesList": [
+      "2027-01-06",
       "2027-01-08",
       "2027-01-09"
     ],
@@ -82,7 +87,6 @@
       "2027-01-03",
       "2027-01-04",
       "2027-01-05",
-      "2027-01-06",
       "2027-01-07"
     ],
     "frequency": null,

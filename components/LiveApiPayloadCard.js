@@ -66,7 +66,7 @@ export default function LiveApiPayloadCard({
                 HTTP 200 OK
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-300 font-mono truncate max-w-xs sm:max-w-xl">
+            <p className="text-[11px] sm:text-xs text-slate-300 font-mono truncate max-w-xs sm:max-w-3xl">
               POST /api/eDarshan/darshansummary/100001
             </p>
           </div>
