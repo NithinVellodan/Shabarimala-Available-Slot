@@ -52,6 +52,7 @@ export default function Header({ apiHealth, onRefresh, isRefreshing, dataMode, o
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Activity History', href: '/history' },
     { name: 'Settings & Alerts', href: '/settings' },
+    { name: 'Terms & Disclaimer', href: '/terms' },
   ];
 
   return (
@@ -62,8 +63,10 @@ export default function Header({ apiHealth, onRefresh, isRefreshing, dataMode, o
           {/* Logo & Branding */}
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-saffron-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-saffron-500/20 group-hover:scale-105 transition-transform">
-                <Flame className="w-6 h-6 text-white" />
+              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-saffron-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-saffron-500/20 group-hover:scale-105 transition-transform overflow-hidden">
+                {/* Ayyappa small icon — Om symbol */}
+                <span className="text-2xl font-black leading-none select-none">ॐ</span>
+                <Flame className="w-3 h-3 text-amber-200 absolute bottom-1 right-1 opacity-80" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -71,8 +74,8 @@ export default function Header({ apiHealth, onRefresh, isRefreshing, dataMode, o
                     SABARIMALA SLOT ALERT
                   </h1>
                 </div>
-                <p className="hidden sm:block text-xs font-medium text-slate-500">
-                  Never miss an available Darshan slot.
+                <p className="hidden sm:block text-xs font-bold text-saffron-600 tracking-wide">
+                  🙏 Swamiye Saranam Ayyappa
                 </p>
               </div>
             </Link>

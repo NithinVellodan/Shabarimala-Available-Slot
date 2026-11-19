@@ -18,6 +18,13 @@ import {
   EyeOff
 } from 'lucide-react';
 
+function maskEmail(email) {
+  const [local] = email.split('@');
+  if (!local) return '****@****';
+  const masked = local.length <= 2 ? '****' : local[0] + '****' + local[local.length - 1];
+  return masked + '@****';
+}
+
 function parseEmailList(emailStr) {
   if (!emailStr) return [];
   if (Array.isArray(emailStr)) return emailStr.map(e => e.trim()).filter(Boolean);
@@ -44,7 +51,6 @@ export default function RecipientAlertCard({
 
   const activeName = settings?.recipient_name || 'Devotee';
   const rawActiveEmail = settings?.alert_recipient_email || 'nithin@godlandinfotech.com, nithinbabuvellodan@gmail.com';
-  const activeEmails = parseEmailList(rawActiveEmail);
 
   // Sync when settings change
   useEffect(() => {
@@ -150,17 +156,6 @@ export default function RecipientAlertCard({
                 <User className="w-3.5 h-3.5 text-saffron-600" />
                 <span>Recipient:</span> <span className="text-saffron-800 underline decoration-saffron-300">{activeName}</span>
               </span>
-              <span className="text-slate-300 hidden sm:inline">•</span>
-              <div className="flex items-center gap-1 flex-wrap">
-                <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <div className="flex items-center gap-1 flex-wrap">
-                  {activeEmails.map((em, idx) => (
-                    <span key={idx} className="font-mono text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700">
-                      {em}
-                    </span>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -253,7 +248,7 @@ export default function RecipientAlertCard({
                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-900 border border-emerald-200 shadow-2xs"
                         >
                           <Mail className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="font-mono text-[11px]">{em}</span>
+                          <span className="font-mono text-[11px]">{maskEmail(em)}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveEmail(em)}

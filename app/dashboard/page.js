@@ -10,6 +10,9 @@ import MonitoringControls from '@/components/MonitoringControls';
 import ActivityTimeline from '@/components/ActivityTimeline';
 import ApiStatus from '@/components/ApiStatus';
 import LiveApiPayloadCard from '@/components/LiveApiPayloadCard';
+import DevotionalBanner from '@/components/DevotionalBanner';
+import TermsAndConditions from '@/components/TermsAndConditions';
+import { formatISTTime } from '@/lib/dateUtils';
 import { Sparkles, ExternalLink, AlertCircle, X } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -69,7 +72,7 @@ export default function DashboardPage() {
         setAlertBanner({
           title: '🚨 New Darshan Slots Available!',
           dates: availJson.data.newlyAvailableDates,
-          timestamp: new Date().toLocaleTimeString()
+          timestamp: formatISTTime(new Date())
         });
       }
     } catch (err) {
@@ -310,7 +313,7 @@ export default function DashboardPage() {
         setAlertBanner({
           title: `🚨 Slot Simulation: ${simDate} Released!`,
           dates: [simDate],
-          timestamp: new Date().toLocaleTimeString(),
+          timestamp: formatISTTime(new Date()),
           details: 'Monitoring check detected status transition from BOOKED to AVAILABLE and dispatched Telegram notification logic.'
         });
       } else {
@@ -377,6 +380,9 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* 0. Devotional Banner */}
+        <DevotionalBanner />
 
         {/* 1. Statistics Cards */}
         <StatisticsCards
@@ -456,29 +462,55 @@ export default function DashboardPage() {
           isRefreshing={isRefreshing}
         />
 
+        {/* 7. Terms & Conditions */}
+        <TermsAndConditions />
+
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-navy-900">Sabarimala Slot Alert</span>
-            <span>•</span>
-            <span>Virtual Q Availability Monitor</span>
+      <footer className="mt-auto border-t border-saffron-200 bg-gradient-to-r from-navy-900 via-navy-900 to-navy-800 py-6 text-center text-xs text-slate-400">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 space-y-4">
+
+          {/* Devotional line */}
+          <p className="text-saffron-400 font-bold tracking-widest text-[11px] uppercase">
+            🙏 &nbsp; ॐ شبريمالا • Swamiye Saranam Ayyappa • ശബരിമലക്ക് ജയ് &nbsp; 🙏
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-white">
+              <span className="font-black text-sm">Sabarimala Slot Alert</span>
+              <span className="text-slate-500">•</span>
+              <span className="text-slate-400 text-xs">Virtual Q Availability Monitor</span>
+            </div>
+
+            <div className="text-center">
+              <span className="text-slate-400">Official Booking Gateway: </span>
+              <a
+                href="https://sabarimalaonline.org/#/darshan"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-saffron-400 font-bold hover:text-saffron-300 hover:underline transition-colors"
+              >
+                sabarimalaonline.org
+              </a>
+            </div>
+
+            <div className="text-slate-500 text-[11px] text-right">
+              <span className="block">Not affiliated with TDB or Kerala Government.</span>
+              <span className="block">Informational only • No payment • No booking.</span>
+            </div>
           </div>
-          <div>
-            Official Booking Gateway:{' '}
-            <a
-              href="https://sabarimalaonline.org/#/darshan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-saffron-700 font-semibold hover:underline"
+
+          <div className="border-t border-navy-800 pt-3 text-[11px] text-slate-600">
+            This is a free, independent devotional-service tool. All Darshan bookings must be completed on the official Sabarimala portal.
+            Use of this service is subject to our{' '}
+            <button
+              onClick={() => document.getElementById('terms-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-saffron-500 hover:text-saffron-300 underline cursor-pointer transition-colors"
             >
-              sabarimalaonline.org
-            </a>
-          </div>
-          <div className="text-slate-400 text-[11px]">
-            Devotees must complete actual Darshan booking on the official portal.
+              Terms of Use & Disclaimer
+            </button>
+            .
           </div>
         </div>
       </footer>
